@@ -1,0 +1,6 @@
+[package]
+name = "sensorforge-mag"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
