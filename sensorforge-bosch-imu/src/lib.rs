@@ -126,6 +126,7 @@ pub struct GyroConfig {
     /// Bandwidth
     pub bw: Bandwidth,
     /// Number of samples to average
+    #[cfg(feature = "bmi323")]
     pub avg_num: AverageNum,
     /// Power mode
     pub mode: GyroscopePowerMode,
@@ -180,6 +181,7 @@ impl GyroConfigBuilder {
     }
 
     /// Set the power mode
+    #[cfg(feature = "bmi323")]
     pub fn avg_num(mut self, avg_num: AverageNum) -> Self {
         self.avg_num = Some(avg_num);
         self
@@ -197,6 +199,7 @@ impl GyroConfigBuilder {
             odr: self.odr.unwrap_or(OutputDataRate::Odr100hz),
             range: self.range.unwrap_or(GyroscopeRange::DPS2000),
             bw: self.bw.unwrap_or(Bandwidth::OdrHalf),
+            #[cfg(feature = "bmi323")]
             avg_num: self.avg_num.unwrap_or(AverageNum::Avg1),
             mode: self.mode.unwrap_or(GyroscopePowerMode::Normal),
         }
@@ -216,11 +219,17 @@ impl From<AccelConfig> for u16 {
 
 impl From<GyroConfig> for u16 {
     /// Convert GyroConfig to a 16-bit register value
+    #[cfg(feature = "bmi323")]
     fn from(config: GyroConfig) -> Self {
         (config.odr as u16 & 0x0F)
             | ((config.range as u16 & 0x07) << 4)
             | ((config.bw as u16 & 0x01) << 7)
             | ((config.avg_num as u16 & 0x07) << 8)
             | ((config.mode as u16 & 0x07) << 12)
+    }
+
+    #[cfg(feature = "bmi160")]
+    fn from(value: GyroConfig) -> Self {
+        value.into()
     }
 }
