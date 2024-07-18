@@ -17,8 +17,8 @@ pub use types::{
 mod sensor_data;
 pub use sensor_data::*;
 
-/// Main struct representing the BMI323 device
-pub struct Bmi323<DI, D> {
+/// Main struct representing the Imu device
+pub struct Imu<DI, D> {
     /// Communication interface (I2C or SPI)
     iface: DI,
     /// Delay provider
@@ -39,6 +39,7 @@ pub struct AccelConfig {
     /// Bandwidth
     pub bw: Bandwidth,
     /// Number of samples to average
+    #[cfg(feature = "bmi323")]
     pub avg_num: AverageNum,
     /// Power mode
     pub mode: AccelerometerPowerMode,
@@ -56,6 +57,7 @@ pub struct AccelConfigBuilder {
     odr: Option<OutputDataRate>,
     range: Option<AccelerometerRange>,
     bw: Option<Bandwidth>,
+    #[cfg(feature = "bmi323")]
     avg_num: Option<AverageNum>,
     mode: Option<AccelerometerPowerMode>,
 }
@@ -67,6 +69,7 @@ impl Default for AccelConfigBuilder {
             odr: None,
             range: None,
             bw: None,
+            #[cfg(feature = "bmi323")]
             avg_num: None,
             mode: None,
         }
@@ -93,6 +96,7 @@ impl AccelConfigBuilder {
     }
 
     /// Set the number of samples to average
+    #[cfg(feature = "bmi323")]
     pub fn avg_num(mut self, avg_num: AverageNum) -> Self {
         self.avg_num = Some(avg_num);
         self
@@ -110,6 +114,7 @@ impl AccelConfigBuilder {
             odr: self.odr.unwrap_or(OutputDataRate::Odr100hz),
             range: self.range.unwrap_or(AccelerometerRange::G8),
             bw: self.bw.unwrap_or(Bandwidth::OdrQuarter),
+            #[cfg(feature = "bmi323")]
             avg_num: self.avg_num.unwrap_or(AverageNum::Avg1),
             mode: self.mode.unwrap_or(AccelerometerPowerMode::Normal),
         }
@@ -145,6 +150,7 @@ pub struct GyroConfigBuilder {
     odr: Option<OutputDataRate>,
     range: Option<GyroscopeRange>,
     bw: Option<Bandwidth>,
+    #[cfg(feature = "bmi323")]
     avg_num: Option<AverageNum>,
     mode: Option<GyroscopePowerMode>,
 }
@@ -155,6 +161,7 @@ impl Default for GyroConfigBuilder {
             odr: None,
             range: None,
             bw: None,
+            #[cfg(feature = "bmi323")]
             avg_num: None,
             mode: None,
         }
@@ -208,12 +215,18 @@ impl GyroConfigBuilder {
 
 impl From<AccelConfig> for u16 {
     /// Convert AccelConfig to a 16-bit register value
+    #[cfg(feature = "bmi323")]
     fn from(config: AccelConfig) -> Self {
         (config.odr as u16 & 0x0F)
             | ((config.range as u16 & 0x07) << 4)
             | ((config.bw as u16 & 0x01) << 7)
             | ((config.avg_num as u16 & 0x07) << 8)
             | ((config.mode as u16 & 0x07) << 12)
+    }
+
+    #[cfg(feature = "bmi160")]
+    fn from(value: AccelConfig) -> Self {
+        value.into() //TODO match this for bmi160
     }
 }
 
@@ -230,6 +243,6 @@ impl From<GyroConfig> for u16 {
 
     #[cfg(feature = "bmi160")]
     fn from(value: GyroConfig) -> Self {
-        value.into()
+        value.into() //TODO match this for bmi160
     }
 }

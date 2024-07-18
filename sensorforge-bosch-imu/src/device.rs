@@ -1,11 +1,11 @@
 use crate::{
     interface::{I2cInterface, ReadData, SpiInterface, WriteData},
     types::{AccelerometerRange, GyroscopeRange, Sensor3DData, Sensor3DDataScaled, SensorType},
-    AccelConfig, Bmi323, Error, GyroConfig, Register,
+    AccelConfig, Error, GyroConfig, Imu, Register,
 };
 use embedded_hal::delay::DelayNs;
 
-impl<I2C, D> Bmi323<I2cInterface<I2C>, D>
+impl<I2C, D> Imu<I2cInterface<I2C>, D>
 where
     D: DelayNs,
 {
@@ -16,7 +16,7 @@ where
     /// * `iface` - The communication interface
     /// * `delay` - A delay provider
     pub fn new_with_i2c(i2c: I2C, address: u8, delay: D) -> Self {
-        Bmi323 {
+        Imu {
             iface: I2cInterface { i2c, address },
             delay,
             accel_range: AccelerometerRange::default(),
@@ -25,7 +25,7 @@ where
     }
 }
 
-impl<SPI, D> Bmi323<SpiInterface<SPI>, D>
+impl<SPI, D> Imu<SpiInterface<SPI>, D>
 where
     D: DelayNs,
 {
@@ -36,7 +36,7 @@ where
     /// * `iface` - The communication interface
     /// * `delay` - A delay provider
     pub fn new_with_spi(spi: SPI, delay: D) -> Self {
-        Bmi323 {
+        Imu {
             iface: SpiInterface { spi },
             delay,
             accel_range: AccelerometerRange::default(),
@@ -45,7 +45,7 @@ where
     }
 }
 
-impl<DI, D, E> Bmi323<DI, D>
+impl<DI, D, E> Imu<DI, D>
 where
     DI: ReadData<Error = Error<E>> + WriteData<Error = Error<E>>,
     D: DelayNs,
