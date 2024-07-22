@@ -10,8 +10,10 @@ mod interface;
 mod registers;
 pub use registers::Register;
 mod types;
+#[cfg(feature = "bmi323")]
+pub use types::AverageNum;
 pub use types::{
-    AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, GyroscopePowerMode,
+    AccelerometerPowerMode, AccelerometerRange, Bandwidth, Error, GyroscopePowerMode,
     GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled,
 };
 mod sensor_data;

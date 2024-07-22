@@ -12,3 +12,7 @@ embedded-hal-mock = { version = "0.11.1", features = ["eh1"] }
 [features]
 bmi160 = []
 bmi323 = []
+bmi160-accel = ["bmi160"]
+bmi160-gyro = ["bmi160"]
+bmi323-accel = ["bmi323"]
+bmi323-gyro = ["bmi323"]
