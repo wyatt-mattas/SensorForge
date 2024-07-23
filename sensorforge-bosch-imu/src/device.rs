@@ -54,14 +54,10 @@ where
     /// Initialize the device
     #[cfg(feature = "bmi323")]
     pub fn init(&mut self) -> Result<(), Error<E>> {
-        #[cfg(feature = "bmi323")]
         self.write_register_16bit(Register::CMD, Register::CMD_SOFT_RESET)?;
 
         self.delay.delay_us(2000);
 
-        //let mut reg_data = [0u8; 3];
-        //reg_data[0] = 0x01; // sensor error conditins register
-        // TODO: Modify the below in this function to match the bmi160
         let status = self.read_register(Register::ERR_REG)?;
         if (status & 0b0000_0001) != 0 {
             return Err(Error::InvalidDevice);
@@ -77,7 +73,6 @@ where
 
     #[cfg(feature = "bmi160")]
     pub fn init(&mut self) -> Result<(), Error<E>> {
-        #[cfg(feature = "bmi160")]
         self.write_register(Register::CMD, Register::CMD_SOFT_RESET)?;
 
         self.delay.delay_us(2000);
