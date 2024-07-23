@@ -215,9 +215,9 @@ impl GyroConfigBuilder {
     }
 }
 
+#[cfg(feature = "bmi323-accel")]
 impl From<AccelConfig> for u16 {
     /// Convert AccelConfig to a 16-bit register value
-    #[cfg(feature = "bmi323")]
     fn from(config: AccelConfig) -> Self {
         (config.odr as u16 & 0x0F)
             | ((config.range as u16 & 0x07) << 4)
@@ -225,16 +225,11 @@ impl From<AccelConfig> for u16 {
             | ((config.avg_num as u16 & 0x07) << 8)
             | ((config.mode as u16 & 0x07) << 12)
     }
-
-    #[cfg(feature = "bmi160")]
-    fn from(value: AccelConfig) -> Self {
-        value.into() //TODO match this for bmi160
-    }
 }
 
+#[cfg(feature = "bmi323-gyro")]
 impl From<GyroConfig> for u16 {
     /// Convert GyroConfig to a 16-bit register value
-    #[cfg(feature = "bmi323")]
     fn from(config: GyroConfig) -> Self {
         (config.odr as u16 & 0x0F)
             | ((config.range as u16 & 0x07) << 4)
@@ -242,9 +237,22 @@ impl From<GyroConfig> for u16 {
             | ((config.avg_num as u16 & 0x07) << 8)
             | ((config.mode as u16 & 0x07) << 12)
     }
+}
 
-    #[cfg(feature = "bmi160")]
-    fn from(value: GyroConfig) -> Self {
-        value.into() //TODO match this for bmi160
+#[cfg(feature = "bmi160-accel")]
+impl From<AccelConfig> for (u8, u8) {
+    fn from(config: AccelConfig) -> Self {
+        let config_data = (config.odr as u8 & 0x0F) | ((config.bw as u8 & 0x07) << 4);
+        let range_data = config.range as u8 & 0x0F;
+        (config_data, range_data)
+    }
+}
+
+#[cfg(feature = "bmi160-gyro")]
+impl From<GyroConfig> for (u8, u8) {
+    fn from(config: GyroConfig) -> Self {
+        let config_data = (config.odr as u8 & 0x0F) | ((config.bw as u8 & 0x03) << 4);
+        let range_data = config.range as u8 & 0x07;
+        (config_data, range_data)
     }
 }

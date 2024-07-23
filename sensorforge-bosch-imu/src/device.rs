@@ -45,29 +45,50 @@ where
     }
 }
 
+// TODO split this into one for bmi323 and one for bmi160
 impl<DI, D, E> Imu<DI, D>
 where
     DI: ReadData<Error = Error<E>> + WriteData<Error = Error<E>>,
     D: DelayNs,
 {
     /// Initialize the device
+    #[cfg(feature = "bmi323")]
     pub fn init(&mut self) -> Result<(), Error<E>> {
         #[cfg(feature = "bmi323")]
         self.write_register_16bit(Register::CMD, Register::CMD_SOFT_RESET)?;
-        #[cfg(feature = "bmi160")]
-        self.write_register(Register::CMD, Register::CMD_SOFT_RESET)?;
 
         self.delay.delay_us(2000);
 
         //let mut reg_data = [0u8; 3];
         //reg_data[0] = 0x01; // sensor error conditins register
-        let status = self.read_register(0x01)?;
+        // TODO: Modify the below in this function to match the bmi160
+        let status = self.read_register(Register::ERR_REG)?;
         if (status & 0b0000_0001) != 0 {
             return Err(Error::InvalidDevice);
         }
 
         let result = self.read_register(Register::CHIPID)?;
-        if result != Register::BMI323_CHIP_ID {
+        if result != Register::CHIP_ID {
+            return Err(Error::InvalidDevice);
+        }
+
+        Ok(())
+    }
+
+    #[cfg(feature = "bmi160")]
+    pub fn init(&mut self) -> Result<(), Error<E>> {
+        #[cfg(feature = "bmi160")]
+        self.write_register(Register::CMD, Register::CMD_SOFT_RESET)?;
+
+        self.delay.delay_us(2000);
+
+        let status = self.read_register(Register::ERR_REG)?;
+        if status != 0 {
+            return Err(Error::InvalidDevice);
+        }
+
+        let result = self.read_register(Register::CHIPID)?;
+        if result != Register::CHIP_ID {
             return Err(Error::InvalidDevice);
         }
 
@@ -79,8 +100,9 @@ where
     /// # Arguments
     ///
     /// * `config` - The accelerometer configuration
+    #[cfg(feature = "bmi323-accel")]
     pub fn set_accel_config(&mut self, config: AccelConfig) -> Result<(), Error<E>> {
-        let reg_data = self.config_to_reg_data(config);
+        let reg_data: u16 = config.into();
         self.write_register_16bit(Register::ACC_CONF, reg_data)?;
         self.accel_range = config.range;
 
@@ -90,13 +112,42 @@ where
         Ok(())
     }
 
+    #[cfg(feature = "bmi160-accel")]
+    pub fn set_accel_config(&mut self, config: AccelConfig) -> Result<(), Error<E>> {
+        let (config_data, range_data) = config.into();
+
+        // Write output data rate and bandwidth
+        self.write_register(Register::BMI160_ACCEL_CONFIG_ADDR, config_data)?;
+
+        // Write accel range
+        self.write_register(Register::BMI160_ACCEL_RANGE_ADDR, range_data)?;
+
+        self.accel_range = config.range;
+
+        self.set_accel_power_mode(config)?;
+
+        // Wait for accelerometer data to be ready
+        self.wait_for_data_ready(SensorType::Accelerometer)?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "bmi160-accel")]
+    fn set_accel_power_mode(&mut self, config: AccelConfig) -> Result<(), Error<E>> {
+        let mode = config.mode;
+        self.write_register(Register::CMD, mode as u8)?;
+        self.delay.delay_ms(5);
+        Ok(())
+    }
+
     /// Set the gyroscope configuration
     ///
     /// # Arguments
     ///
     /// * `config` - The gyroscope configuration
+    #[cfg(feature = "bmi323-gyro")]
     pub fn set_gyro_config(&mut self, config: GyroConfig) -> Result<(), Error<E>> {
-        let reg_data = self.config_to_reg_data(config);
+        let reg_data: u16 = config.into();
         self.write_register_16bit(Register::GYR_CONF, reg_data)?;
         self.gyro_range = config.range;
 
@@ -106,12 +157,32 @@ where
         Ok(())
     }
 
-    fn config_to_reg_data<T>(&self, config: T) -> u16
-    where
-        T: Into<u16> + Copy,
-    {
-        let config: u16 = config.into();
-        config
+    #[cfg(feature = "bmi160-gyro")]
+    pub fn set_gyro_config(&mut self, config: GyroConfig) -> Result<(), Error<E>> {
+        let (config_data, range_data) = config.into();
+        // Write output data rate and bandwidth
+        self.write_register(Register::BMI160_GYRO_CONFIG_ADDR, config_data)?;
+
+        // Write gyro range
+        self.write_register(Register::BMI160_GYRO_RANGE_ADDR, range_data)?;
+
+        self.gyro_range = config.range;
+
+        // Set gyro power mode
+        self.set_gyro_power_mode(config)?;
+
+        // Wait for gyroscope data to be ready
+        self.wait_for_data_ready(SensorType::Gyroscope)?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "bmi160-gyro")]
+    fn set_gyro_power_mode(&mut self, config: GyroConfig) -> Result<(), Error<E>> {
+        let mode = config.mode;
+        self.write_register(Register::CMD, mode as u8)?;
+        self.delay.delay_ms(5);
+        Ok(())
     }
 
     fn read_sensor_data(&mut self, sensor_type: SensorType) -> Result<Sensor3DData, Error<E>> {
@@ -153,6 +224,7 @@ where
         Ok(raw_data.to_dps(self.gyro_range.to_dps())) // Assuming 16-bit width
     }
 
+    #[cfg(feature = "bmi323")]
     fn write_register_16bit(&mut self, reg: u8, value: u16) -> Result<(), Error<E>> {
         let bytes = value.to_le_bytes();
         self.iface.write_data(&[reg, bytes[0], bytes[1]])
